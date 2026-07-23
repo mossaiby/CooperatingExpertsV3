@@ -135,8 +135,12 @@ def train_stitch(cfg: Config, pretrained_ckpt_dir: str, device="cuda", resume_fr
 
     pairs = load_pairs(cfg.data.processed_path)
     train_pairs, val_pairs = train_val_split(pairs, cfg.data.val_fraction, cfg.data.seed)
-    train_ds = HandoffDataset(train_pairs, tok_en, tok_py, cfg.expert.max_seq_len)
-    val_ds = HandoffDataset(val_pairs, tok_en, tok_py, cfg.expert.max_seq_len)
+    # Reserve room for the injected handoff vectors prepended to cont_ids in
+    # forward_with_injected_prefix (num_vectors positions), so the combined
+    # sequence length never exceeds the backbone's max_seq_len.
+    handoff_max_seq_len = cfg.expert.max_seq_len - cfg.shared.num_vectors
+    train_ds = HandoffDataset(train_pairs, tok_en, tok_py, handoff_max_seq_len)
+    val_ds = HandoffDataset(val_pairs, tok_en, tok_py, handoff_max_seq_len)
     pad_id_by_expert = {"english": tok_en.pad_token_id, "python": tok_py.pad_token_id}
     train_batcher = DirectionalBatcher(train_ds, cfg.stitch.batch_size, pad_id_by_expert, shuffle=True)
     val_batcher = DirectionalBatcher(val_ds, cfg.stitch.batch_size, pad_id_by_expert, shuffle=False)
