@@ -35,6 +35,8 @@ def evaluate(model: Expert, val_loader, device, n_batches=20):
         try:
             x, y = next(it)
         except StopIteration:
+            if n == 0:
+                return float("inf")
             it = iter(val_loader)
             x, y = next(it)
         x, y = x.to(device), y.to(device)
@@ -56,7 +58,7 @@ def pretrain_expert(name: str, corpus_path: str, cfg: Config, device="cuda"):
     val_ds = CorpusWindowDataset(corpus_path, tok, cfg.pretrain.seq_len,
                                   cfg.data.val_fraction, split="val", seed=cfg.data.seed)
     train_loader = DataLoader(train_ds, batch_size=cfg.pretrain.batch_size, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_ds, batch_size=cfg.pretrain.batch_size, shuffle=False, drop_last=True)
+    val_loader = DataLoader(val_ds, batch_size=cfg.pretrain.batch_size, shuffle=False, drop_last=False)
 
     optimizer = AdamW(model.backbone.parameters(), lr=cfg.pretrain.lr)
 
